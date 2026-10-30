@@ -1,0 +1,8 @@
+# Local settings
+.env
+
+# Generated guide output
+*.xml
+*.tmp
+
+__pycache__/

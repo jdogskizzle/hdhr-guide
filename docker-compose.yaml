@@ -1,0 +1,15 @@
+# Writes an XMLTV guide from the HDHomeRun's free guide service every few hours.
+# Settings come from .env (copy .env.example to .env and fill it in).
+services:
+  hdhr-guide:
+    image: python:3.12-alpine
+    container_name: hdhr-guide
+    restart: unless-stopped
+    user: "${PUID:?set PUID in .env}:${PGID:?set PGID in .env}"
+    command: ["python", "-u", "/app/guide.py"]
+    environment:
+      - HDHR_HOST=${HDHR_HOST:?set HDHR_HOST in .env}
+      - INTERVAL_HOURS=${INTERVAL_HOURS:-4}
+    volumes:
+      - ./guide.py:/app/guide.py:ro
+      - ${OUTPUT_DIR:?set OUTPUT_DIR in .env}:/out
