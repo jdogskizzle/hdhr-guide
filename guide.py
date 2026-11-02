@@ -18,7 +18,7 @@ if not HOST:
     sys.exit("HDHR_HOST is not set: give it your HDHomeRun's IP address or hostname")
 OUT = os.environ.get("OUT", "/out/guide.xml")
 INTERVAL = float(os.environ.get("INTERVAL_HOURS", "4")) * 3600
-MAX_PAGES = 10
+MAX_PAGES = 40
 
 # HDHomeRun filter -> category Jellyfin uses to tag movies, sports, news and kids shows.
 CATEGORIES = {"Movies": "Movie", "Sports": "Sports", "News": "News", "Kids": "Kids"}
@@ -43,14 +43,21 @@ def fetch():
             if exc.code == 400 and start:  # past the end of the available guide
                 break
             raise
-        end = start or 0
+        # Each page runs to a different time on each channel. The next page starts where the
+        # first channel runs out (it also returns shows already airing then), so nothing on
+        # any channel falls between pages. Starting at the latest end skipped shows.
+        ends = []
         for ch in page:
             num = ch["GuideNumber"]
             channels.setdefault(num, {**ch, "LineupName": names.get(num)})
             for p in ch.get("Guide", []):
                 programmes[(num, p["StartTime"])] = p
-                end = max(end, p["EndTime"])
-        if not page or end <= (start or 0):
+            if ch.get("Guide"):
+                ends.append(max(p["EndTime"] for p in ch["Guide"]))
+        if not ends:
+            break
+        end = min(ends) if min(ends) > (start or 0) else max(ends)
+        if end <= (start or 0):
             break
         start = end
         time.sleep(1)
